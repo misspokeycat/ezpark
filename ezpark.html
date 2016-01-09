@@ -1,0 +1,18 @@
+<head>
+  <title>EZ Park</title>
+</head>
+
+<body>
+  <h1>EZ Park</h1>
+  <ul class="list-group">
+      {{#each spots}}
+        {{>spot}}
+      {{/each}}
+  </ul>
+</body>
+
+<template name="spot">
+  <li class="list-group-item">
+      {{name}} <button class="parkbtn{{#if parked}} disabled{{/if}} btn btn-primary">{{status}}</button>
+  </li>
+</template>
