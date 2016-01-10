@@ -39,17 +39,44 @@ if (Meteor.isClient) {
 
     Template.body.events({
         "click .parkbtn" : function(event){
+            var spot = this;
+            StripeCheckout.open({
+                key: 'pk_test_eqCxZfI6l6UfjOvtovUPdhYT',
+                amount: 100, // this is equivalent to $1
+                name: 'Meteor Tutorial',
+                description: 'Spot ' + spot.name + ' - 1hr',
+                panelLabel: 'Pay Now',
+                token: function(res) {
+                    stripeToken = res.id;
+                    console.info(res);
+                    Meteor.call('chargeCard', stripeToken, spot);
+                }
+            });
             //updates timer every second, destroys timer on finish
-            Meteor.call('startTimer', this);
+            //Meteor.call('startTimer', this);
         }
     });
 }
 
 if (Meteor.isServer) {
+    Meteor.methods({
+        'chargeCard': function(stripeToken, spot) {
+            var Stripe = StripeAPI('sk_test_3pGKeJIsjhfcEUVAXinrNkVX');
+            var chargeSync = Meteor.wrapAsync(Stripe.charges.create, Stripe.charges);
+            var result = chargeSync({
+                source: stripeToken,
+                amount: 100, // this is equivalent to $1
+                currency: 'usd'
+            });
+            if (result != null){
+                Meteor.call('startTimer', spot);
+            }
+        }
+    });
     Meteor.startup(function () {
         // code to run on server at startup
+        //db init
         if (!Spots.findOne({name: 'C1'})){
-            //db init
             Spots.insert({name: 'C1', parked: false, status: "Open"});
             Spots.insert({name: 'C2', parked: false, status: "Open"});
             Spots.insert({name: 'D1', parked: false, status: "Open"});
