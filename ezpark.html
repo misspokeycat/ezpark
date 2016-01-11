@@ -4,15 +4,30 @@
 
 <body>
   <h1>EZ Park</h1>
-  <ul class="list-group">
-      {{#each spots}}
-        {{>spot}}
-      {{/each}}
-  </ul>
+  <div class="panel panel-primary">
+      <div class="panel-heading">
+          <div class="row">
+            <div class="col-sm-2">Spot</div>
+            <div class="col-sm-3">Status</div>
+          </div>
+      </div>
+      <ul class="list-group">
+          {{#each spots}}
+            {{>spot}}
+          {{/each}}
+      </ul>
+  </div>
 </body>
 
 <template name="spot">
   <li class="list-group-item">
-      {{name}} <button class="parkbtn{{#if parked}} disabled{{/if}} btn btn-primary">{{status}}</button>
+      <div class="row">
+          <div class="col-sm-2"><h4>{{name}}</h4></div>
+          <div class="col-sm-3"><h5>{{status}}</h5></div>
+          <div class="col-sm-5">
+              {{#if parked}}<button class="btn btn-primary disabled">In use</button>{{/if}}
+              {{#unless parked}}<button class="parkbtn btn btn-primary">1 Day</button> <button class="parkbtnMonth btn btn-primary">1 Month</button>{{/unless}}
+          </div>
+      </div>
   </li>
 </template>

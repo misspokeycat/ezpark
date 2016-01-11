@@ -12,22 +12,30 @@ Meteor.methods({
                 Meteor.clearInterval(timer);
             } else {
                 //Gets H:M:S
+                var days = Math.floor((timeRem/(1000*60*60*24)));
                 var hours = Math.floor((timeRem/(1000*60*60)) % 24);
                 var minutes = Math.floor((timeRem/1000/60) % 60);
                 var seconds = Math.floor((timeRem/1000) % 60);
                 //pads minutes and seconds with zeroes
                 minutes = ('0' + minutes).slice(-2);
                 seconds = ('0' + seconds).slice(-2);
-                Spots.update({_id: spot._id}, {$set: {status : hours + ':' + minutes + ":" + seconds}});
+                var status;
+                if (days === 0){
+                    status = hours + ':' + minutes + ":" + seconds;
+                } else {
+                    status = days + " days"
+                }
+                status = "In Use - " + status;
+                Spots.update({_id: spot._id}, {$set: {status : status}});
             }
         }, 1000);
         Spots.update({_id: spot._id}, {$set: {timer: timer.toString()}});
     },
-   startTimer : function (spot){
+   startTimer : function (spot, hours){
        var curTime = new Date();
        var updates = {
            parked: true,
-           endTime: Date.parse(curTime) + (1000*60*60)};
+           endTime: Date.parse(curTime) + (1000*60*60*hours)};
        Spots.update({_id: spot._id}, {$set : updates});
        Meteor.call('resumeTimer', spot);
    }
@@ -36,24 +44,43 @@ Meteor.methods({
 if (Meteor.isClient) {
     Template.body.helpers({
         'spots': function () {
-            return Spots.find({});
+            return Spots.find({}, {sort: {name: 1}});
         }
     });
 
     Template.body.events({
-        "click .parkbtn" : function(event) {
+        "click .parkbtn" : function() {
             if (!this.parked) {
                 var spot = this;
+                var hours = 24;
                 StripeCheckout.open({
                     key: 'pk_test_eqCxZfI6l6UfjOvtovUPdhYT',
-                    amount: 100, // this is equivalent to $1
-                    name: 'Meteor Tutorial',
-                    description: 'Spot ' + spot.name + ' - 1hr',
+                    amount: 500, // this is equivalent to $5
+                    name: 'EZ Park',
+                    description: 'Spot ' + spot.name + ' - 1 Day',
                     panelLabel: 'Pay Now',
                     token: function (res) {
                         stripeToken = res.id;
                         console.info(res);
-                        Meteor.call('chargeCard', stripeToken, spot);
+                        Meteor.call('chargeCard', stripeToken, spot, hours, 500);
+                    }
+                });
+            }
+        },
+        "click .parkbtnMonth" : function() {
+            if (!this.parked) {
+                var spot = this;
+                var hours = 24*30;
+                StripeCheckout.open({
+                    key: 'pk_test_eqCxZfI6l6UfjOvtovUPdhYT',
+                    amount: 10000, // this is equivalent to $100
+                    name: 'EZ Park',
+                    description: 'Spot ' + spot.name + ' - 30 Days',
+                    panelLabel: 'Pay Now',
+                    token: function (res) {
+                        stripeToken = res.id;
+                        console.info(res);
+                        Meteor.call('chargeCard', stripeToken, spot, hours, 10000);
                     }
                 });
             }
@@ -63,16 +90,16 @@ if (Meteor.isClient) {
 
 if (Meteor.isServer) {
     Meteor.methods({
-        'chargeCard': function(stripeToken, spot) {
+        'chargeCard': function(stripeToken, spot, hours, amount) {
             var Stripe = StripeAPI('sk_test_3pGKeJIsjhfcEUVAXinrNkVX');
             var chargeSync = Meteor.wrapAsync(Stripe.charges.create, Stripe.charges);
             var result = chargeSync({
                 source: stripeToken,
-                amount: 100, // this is equivalent to $1
+                amount: amount,
                 currency: 'usd'
             });
             if (result != null){
-                Meteor.call('startTimer', spot);
+                Meteor.call('startTimer', spot, hours);
             }
         }
     });
